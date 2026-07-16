@@ -96,6 +96,9 @@ const LOCALES = {
     'dl.step3': 'Generando PDF...',
     'dl.step4': 'Verificando documento...',
     'dl.step5': '¡Listo!',
+    // Balance toggle
+    'balance.toggle_visible': 'Mostrar saldo',
+    'balance.toggle_hidden': 'Ocultar saldo',
   },
 
   en: {
@@ -189,6 +192,9 @@ const LOCALES = {
     'dl.step3': 'Generating PDF...',
     'dl.step4': 'Verifying document...',
     'dl.step5': 'Done!',
+    // Balance toggle
+    'balance.toggle_visible': 'Show balance',
+    'balance.toggle_hidden': 'Hide balance',
   },
 };
 
@@ -495,24 +501,93 @@ const SidebarToggle = (() => {
 
 
 /* ============================================================
-   DASHBOARD MODULE  (T08 — render() usa I18n.t())
+   DASHBOARD MODULE  (Balance toggle + rendering)
    ============================================================ */
 
 const Dashboard = (() => {
 
+  let balanceVisible = true;
+
+  // Initialize balanceVisible from localStorage
+  function initBalanceVisibility() {
+    try {
+      const saved = localStorage.getItem('novabanco-balance-visible');
+      if (saved !== null) {
+        balanceVisible = JSON.parse(saved);
+      }
+    } catch(e) {
+      console.warn('Failed to read balance visibility from localStorage');
+    }
+  }
+
+  // Toggle and persist balance visibility
+  function toggleBalanceVisibility() {
+    balanceVisible = !balanceVisible;
+    try {
+      localStorage.setItem('novabanco-balance-visible', JSON.stringify(balanceVisible));
+    } catch(e) {
+      console.warn('Failed to persist balance visibility to localStorage');
+    }
+    renderBalance();
+    updateBalanceToggleUI();
+    updateBalanceSensitiveElements();
+  }
+
+  // Render balance with mask if hidden
   function renderBalance() {
     const el = document.getElementById('balance-amount');
     if (!el) return;
-    const [int, dec] = DATA.user.balance.toLocaleString('es-AR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).split(',');
-    el.innerHTML = `<span class="balance-currency">$</span>${int}<span style="font-size:24px;opacity:.5">,${dec}</span>`;
+
+    let html;
+    if (balanceVisible) {
+      // Show actual balance
+      const [int, dec] = DATA.user.balance.toLocaleString('es-AR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).split(',');
+      html = `<span class="balance-currency">$</span>${int}<span style="font-size:24px;opacity:.5">,${dec}</span>`;
+    } else {
+      // Show masked balance (8 bullets)
+      html = `<span class="balance-currency">$</span><span class="balance-masked">••••••••</span>`;
+    }
+
+    el.innerHTML = html;
+  }
+
+  // Update toggle button icon and tooltip
+  function updateBalanceToggleUI() {
+    const btn = document.getElementById('balance-toggle-btn');
+    if (!btn) return;
+
+    const visibleIcon = btn.querySelector('.balance-toggle-icon.visible');
+    const hiddenIcon = btn.querySelector('.balance-toggle-icon.hidden');
+    
+    if (visibleIcon) visibleIcon.style.display = balanceVisible ? 'block' : 'none';
+    if (hiddenIcon) hiddenIcon.style.display = balanceVisible ? 'none' : 'block';
+
+    // Update tooltip and aria-label
+    const tooltipKey = balanceVisible ? 'balance.toggle_hidden' : 'balance.toggle_visible';
+    const tooltipText = I18n.t(tooltipKey);
+    btn.setAttribute('title', tooltipText);
+    btn.setAttribute('aria-label', tooltipText);
+  }
+
+  // Hide/show balance-sensitive elements (amounts, limits)
+  function updateBalanceSensitiveElements() {
+    const sensitiveElements = document.querySelectorAll('[data-balance-sensitive]');
+    sensitiveElements.forEach(el => {
+      el.style.visibility = balanceVisible ? 'visible' : 'hidden';
+      el.style.opacity = balanceVisible ? '1' : '0';
+      el.style.transition = 'opacity 0.2s ease';
+    });
   }
 
   function renderTarjeta() {
     const el = document.getElementById('tarjeta-limit');
-    if (el) el.textContent = formatARS(DATA.user.card.limit);
+    if (el) {
+      el.textContent = formatARS(DATA.user.card.limit);
+      el.setAttribute('data-balance-sensitive', '');
+    }
   }
 
   function renderRecentMovements() {
@@ -526,7 +601,7 @@ const Dashboard = (() => {
           <div class="movement-name">${m.name}</div>
           <div class="movement-date">${m.category} · ${m.date}</div>
         </div>
-        <div class="movement-amount ${m.amount < 0 ? 'debit' : 'credit'}">
+        <div class="movement-amount ${m.amount < 0 ? 'debit' : 'credit'}" data-balance-sensitive>
           ${formatAmountSigned(m.amount)}
         </div>
       </div>
@@ -539,9 +614,11 @@ const Dashboard = (() => {
     renderBalance();
     renderTarjeta();
     renderRecentMovements();
+    updateBalanceToggleUI();
+    updateBalanceSensitiveElements();
   }
 
-  return { render };
+  return { render, toggleBalanceVisibility, initBalanceVisibility };
 
 })();
 
@@ -767,6 +844,7 @@ document.addEventListener('DOMContentLoaded', () => {
   I18n.init();
   Theme.init();
   SidebarToggle.init();
+  Dashboard.initBalanceVisibility();
   Dashboard.render();
   Movements.render();
   Beneficios.init();
@@ -782,5 +860,6 @@ document.addEventListener('DOMContentLoaded', () => {
   window.toggleTheme       = ()    => Theme.toggle();
   window.switchLocale      = (l)   => I18n.setLocale(l);
   window.toggleSidebar     = ()    => SidebarToggle.toggle();
+  window.toggleBalanceVisibility = () => Dashboard.toggleBalanceVisibility();
 
 });

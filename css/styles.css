@@ -444,6 +444,7 @@ html[data-sidebar-collapsed="true"] .main-content {
   background: rgba(255, 255, 255, 0.05);
   top: -80px;
   right: -60px;
+  pointer-events: none;
 }
 
 .balance-hero::after {
@@ -455,6 +456,7 @@ html[data-sidebar-collapsed="true"] .main-content {
   background: rgba(255, 255, 255, 0.04);
   bottom: -60px;
   right: 80px;
+  pointer-events: none;
 }
 
 .balance-label {
@@ -954,7 +956,67 @@ html[data-sidebar-collapsed="true"] .main-content {
   .quick-actions-grid { grid-template-columns: repeat(2, 1fr); }
   .stats-bar          { grid-template-columns: 1fr; gap: 0; }
 }
+/* ── 10. Balance toggle ───────────────────────────────────── */
+.balance-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
+}
 
+.balance-amount {
+  flex: 1;
+}
+
+.balance-masked {
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+  font-weight: 500;
+}
+
+.balance-toggle-btn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
+}
+
+.balance-toggle-btn:hover {
+  background-color: var(--surface-2);
+  color: var(--text);
+}
+
+.balance-toggle-btn:active {
+  background-color: var(--surface);
+}
+
+.balance-toggle-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Light theme adjustments */
+[data-theme="light"] .balance-toggle-btn {
+  color: var(--text-muted);
+}
+
+[data-theme="light"] .balance-toggle-btn:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
 @media (max-width: 640px) {
   .sidebar        { transform: translateX(-100%); }
   .main-content   { margin-left: 0; }
